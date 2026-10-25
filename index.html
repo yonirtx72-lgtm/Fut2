@@ -1,0 +1,999 @@
+```html
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Copa CyberFut 2D - Juego de Fútbol Interactivo</title>
+    <!-- Tailwind CSS para la interfaz -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Teko:wght@500;700&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome para iconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: #080c14;
+            color: #f1f5f9;
+            user-select: none;
+            overflow-x: hidden;
+        }
+        .font-teko {
+            font-family: 'Teko', sans-serif;
+        }
+        /* Estilos Neón y Vidrio Esmerilado */
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .neon-border-home {
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.4);
+            border-color: #3b82f6;
+        }
+        .neon-border-away {
+            box-shadow: 0 0 15px rgba(239, 68, 68, 0.4);
+            border-color: #ef4444;
+        }
+        .neon-text-gold {
+            text-shadow: 0 0 10px rgba(234, 179, 8, 0.6);
+        }
+        /* Botones personalizados */
+        .btn-action {
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .btn-action:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+        }
+        .btn-action:active {
+            transform: translateY(1px);
+        }
+        /* Animaciones para las Notificaciones */
+        @keyframes bannerPop {
+            0% { transform: scale(0.5); opacity: 0; }
+            70% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .animate-banner {
+            animation: bannerPop 0.4s ease-out forwards;
+        }
+        /* Personalización de scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.6);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(59, 130, 246, 0.5);
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between p-2 md:p-6 bg-slate-950">
+
+    <!-- ENCABEZADO Y MARCADOR DE PARTIDO -->
+    <header class="w-full max-w-6xl mx-auto mb-4">
+        <div class="glass-panel rounded-2xl p-4 shadow-2xl flex flex-wrap items-center justify-between gap-4 border border-slate-800">
+            
+            <!-- Equipo Local (Azul) -->
+            <div class="flex items-center space-x-3 min-w-[180px]">
+                <div class="w-12 h-12 rounded-xl bg-blue-600/30 border-2 border-blue-500 flex items-center justify-center text-blue-400 font-bold text-xl shadow-lg">
+                    <i class="fa-solid fa-shield-halved"></i>
+                </div>
+                <div>
+                    <h2 class="text-xl font-extrabold tracking-wide text-blue-400 uppercase">Cyber FC</h2>
+                    <span class="text-xs text-slate-400 font-medium">Local (Tú)</span>
+                </div>
+            </div>
+
+            <!-- Marcador y Reloj Central -->
+            <div class="flex items-center justify-center gap-6 bg-slate-900/90 px-6 py-2 rounded-xl border border-slate-800 shadow-inner">
+                <!-- Goles Local -->
+                <span id="score-home" class="font-teko text-5xl md:text-6xl font-bold text-blue-400 leading-none">0</span>
+                
+                <div class="flex flex-col items-center">
+                    <!-- Reloj -->
+                    <div class="flex items-center gap-1.5 text-amber-400 font-mono font-bold text-lg md:text-xl">
+                        <i class="fa-regular fa-clock text-xs"></i>
+                        <span id="match-timer">00:00</span>
+                    </div>
+                    <span id="match-period" class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mt-0.5">1ª Parte</span>
+                </div>
+
+                <!-- Goles Visitante -->
+                <span id="score-away" class="font-teko text-5xl md:text-6xl font-bold text-red-500 leading-none">0</span>
+            </div>
+
+            <!-- Equipo Visitante (Rojo) -->
+            <div class="flex items-center space-x-3 min-w-[180px] justify-end">
+                <div class="text-right">
+                    <h2 class="text-xl font-extrabold tracking-wide text-red-500 uppercase">Neon Stars</h2>
+                    <span class="text-xs text-slate-400 font-medium">Visitante (IA)</span>
+                </div>
+                <div class="w-12 h-12 rounded-xl bg-red-600/30 border-2 border-red-500 flex items-center justify-center text-red-500 font-bold text-xl shadow-lg">
+                    <i class="fa-solid fa-shield-cat"></i>
+                </div>
+            </div>
+
+        </div>
+    </header>
+
+    <!-- ÁREA PRINCIPAL DEL JUEGO Y PANELES LATERALES -->
+    <main class="w-full max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-4 gap-4 flex-grow">
+        
+        <!-- PANEL IZQUIERDO: Plantilla y Alineación -->
+        <aside class="glass-panel rounded-2xl p-4 flex flex-col justify-between order-2 lg:order-1">
+            <div>
+                <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-3">
+                    <h3 class="font-bold text-slate-200 flex items-center gap-2">
+                        <i class="fa-solid fa-users text-blue-400"></i> Alineación Cyber FC
+                    </h3>
+                    <span class="text-xs bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded-full font-semibold">4-3-3</span>
+                </div>
+                
+                <!-- Lista de Jugadores Activos -->
+                <ul id="squad-list" class="space-y-2 text-sm max-h-[220px] lg:max-h-[300px] overflow-y-auto pr-1">
+                    <!-- Se llena mediante JS -->
+                </ul>
+            </div>
+
+            <!-- Lista de Goleadores -->
+            <div class="mt-4 pt-3 border-t border-slate-800">
+                <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2 flex items-center gap-1.5">
+                    <i class="fa-solid fa-futbol text-amber-400"></i> Tabla de Goleadores
+                </h4>
+                <div id="scorers-list" class="text-xs text-slate-300 space-y-1 max-h-[100px] overflow-y-auto">
+                    <p class="text-slate-500 italic">No hay goles anotados aún.</p>
+                </div>
+            </div>
+        </aside>
+
+        <!-- CANCHA DE FÚTBOL Y SUPERPOSICIONES -->
+        <section class="lg:col-span-3 glass-panel rounded-2xl p-3 flex flex-col items-center justify-center relative order-1 lg:order-2 overflow-hidden min-h-[380px] md:min-h-[480px]">
+            
+            <!-- Banner de Notificaciones de Eventos (Gol, Parada, Fuera) -->
+            <div id="event-banner" class="hidden absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-30 pointer-events-none text-center">
+                <div id="banner-box" class="px-8 py-4 rounded-2xl border-2 shadow-2xl backdrop-blur-md">
+                    <h1 id="banner-title" class="font-teko text-6xl md:text-7xl font-extrabold uppercase tracking-wider text-white">¡GOL!</h1>
+                    <p id="banner-subtitle" class="text-slate-200 text-sm md:text-base font-semibold mt-1">Cyber FC toma la delantera</p>
+                </div>
+            </div>
+
+            <!-- Pantalla de Inicio / Pausa Overlay -->
+            <div id="overlay-screen" class="absolute inset-0 bg-slate-950/85 backdrop-blur-sm z-20 flex flex-col items-center justify-center p-6 text-center">
+                <div class="max-w-md">
+                    <div class="w-16 h-16 bg-blue-600/20 border-2 border-blue-500 rounded-full flex items-center justify-center text-blue-400 text-3xl mx-auto mb-4 animate-bounce">
+                        <i class="fa-solid fa-play"></i>
+                    </div>
+                    <h2 id="overlay-title" class="text-3xl font-extrabold text-white mb-2">¡Bienvenido a CyberFut 2D!</h2>
+                    <p id="overlay-desc" class="text-slate-400 text-sm mb-6 leading-relaxed">
+                        Usa las teclas <span class="text-blue-400 font-bold">WASD / Flechas</span> para mover a tu jugador. Usa <span class="text-blue-400 font-bold">Espacio</span> para patear el balón hacia la portería rival. ¡Ataca hacia la derecha!
+                    </p>
+                    <button id="start-btn" onclick="startGame()" class="btn-action bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold py-3.5 px-8 rounded-xl shadow-lg shadow-blue-500/25 flex items-center gap-2 mx-auto cursor-pointer">
+                        <i class="fa-solid fa-kickstarter-k"></i> Iniciar Partido
+                    </button>
+                </div>
+            </div>
+
+            <!-- Canvas del Campo de Juego -->
+            <canvas id="gameCanvas" class="w-full h-full rounded-xl bg-emerald-950 shadow-inner cursor-crosshair"></canvas>
+
+            <!-- Controles Táctiles Integrados para Pantallas Móviles -->
+            <div class="w-full mt-3 flex items-center justify-between lg:hidden gap-2">
+                <!-- D-Pad Direccional para Móvil -->
+                <div class="grid grid-cols-3 gap-1 w-32 h-32">
+                    <div></div>
+                    <button id="btn-up" class="bg-slate-800/80 active:bg-blue-600 rounded-lg text-white font-bold flex items-center justify-center text-xl">▲</button>
+                    <div></div>
+                    <button id="btn-left" class="bg-slate-800/80 active:bg-blue-600 rounded-lg text-white font-bold flex items-center justify-center text-xl">◀</button>
+                    <div class="bg-slate-900/40 rounded-lg"></div>
+                    <button id="btn-right" class="bg-slate-800/80 active:bg-blue-600 rounded-lg text-white font-bold flex items-center justify-center text-xl">▶</button>
+                    <div></div>
+                    <button id="btn-down" class="bg-slate-800/80 active:bg-blue-600 rounded-lg text-white font-bold flex items-center justify-center text-xl">▼</button>
+                    <div></div>
+                </div>
+
+                <!-- Botón de Tiro Móvil -->
+                <button id="btn-shoot" class="w-24 h-24 bg-gradient-to-br from-red-600 to-amber-600 active:scale-95 rounded-full text-white font-bold text-lg shadow-lg flex flex-col items-center justify-center border-2 border-amber-400">
+                    <i class="fa-solid fa-futbol text-2xl mb-1"></i>
+                    TIRAR
+                </button>
+            </div>
+
+        </section>
+    </main>
+
+    <!-- BARRA DE CONTROLES INFERIOR -->
+    <footer class="w-full max-w-6xl mx-auto mt-4">
+        <div class="glass-panel rounded-2xl p-4 flex flex-wrap items-center justify-between gap-4">
+            
+            <!-- Botones de Acción -->
+            <div class="flex items-center gap-3">
+                <button id="pause-btn" onclick="togglePause()" disabled class="btn-action bg-slate-800 hover:bg-slate-700 disabled:opacity-50 text-slate-200 px-4 py-2.5 rounded-xl font-semibold text-sm flex items-center gap-2 border border-slate-700 cursor-pointer">
+                    <i class="fa-solid fa-pause"></i> Pausar
+                </button>
+                <button onclick="resetMatch()" class="btn-action bg-slate-800 hover:bg-slate-700 text-slate-200 px-4 py-2.5 rounded-xl font-semibold text-sm flex items-center gap-2 border border-slate-700 cursor-pointer">
+                    <i class="fa-solid fa-rotate-left"></i> Reiniciar
+                </button>
+                <button onclick="toggleLineupModal()" class="btn-action bg-slate-800 hover:bg-slate-700 text-slate-200 px-4 py-2.5 rounded-xl font-semibold text-sm flex items-center gap-2 border border-slate-700 cursor-pointer">
+                    <i class="fa-solid fa-user-pen"></i> Cambiar Alineación
+                </button>
+            </div>
+
+            <!-- Indicador de Controles de Teclado -->
+            <div class="hidden md:flex items-center gap-4 text-xs text-slate-400">
+                <span class="flex items-center gap-1.5"><kbd class="bg-slate-800 text-slate-300 px-2 py-1 rounded border border-slate-700">W,A,S,D</kbd> / <kbd class="bg-slate-800 text-slate-300 px-2 py-1 rounded border border-slate-700">Flechas</kbd> Mover</span>
+                <span class="flex items-center gap-1.5"><kbd class="bg-slate-800 text-slate-300 px-2 py-1 rounded border border-slate-700">Espacio</kbd> Patear / Tirar</span>
+            </div>
+
+            <!-- Modificador de Velocidad del Tiempo -->
+            <div class="flex items-center gap-2 text-xs">
+                <span class="text-slate-400 font-medium">Velocidad Reloj:</span>
+                <select id="time-speed" onchange="changeTimeSpeed(this.value)" class="bg-slate-900 border border-slate-700 text-slate-200 rounded-lg px-2 py-1.5 focus:outline-none focus:border-blue-500">
+                    <option value="1">Normal (3 min)</option>
+                    <option value="2" selected>Rápido (90 seg)</option>
+                    <option value="4">Ultra Rápido (45 seg)</option>
+                </select>
+            </div>
+
+        </div>
+    </footer>
+
+    <!-- MODAL DE CAMBIO DE ALINEACIÓN -->
+    <div id="lineup-modal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+        <div class="glass-panel w-full max-w-lg rounded-2xl p-6 border border-slate-700 shadow-2xl">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
+                <h3 class="text-xl font-bold text-white flex items-center gap-2">
+                    <i class="fa-solid fa-users-gear text-blue-400"></i> Configurar Plantilla y Alineación
+                </h3>
+                <button onclick="toggleLineupModal()" class="text-slate-400 hover:text-white text-lg"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-400 mb-1">Delantero Estrella (Tu Jugador Controlado)</label>
+                    <input type="text" id="input-striker" value="Carlos Vela" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-400 mb-1">Centrocampista Creativo</label>
+                    <input type="text" id="input-midfielder" value="Alexis Sánchez" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-400 mb-1">Defensa Central</label>
+                    <input type="text" id="input-defender" value="Rafael Márquez" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-400 mb-1">Portero Titan</label>
+                    <input type="text" id="input-keeper" value="Guillermo Ochoa" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500">
+                </div>
+            </div>
+
+            <div class="mt-6 flex justify-end gap-3">
+                <button onclick="toggleLineupModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-sm font-semibold">Cancelar</button>
+                <button onclick="saveLineup()" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-sm font-semibold shadow-lg shadow-blue-500/30">Guardar Cambios</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCRIPT DEL JUEGO DE FÚTBOL -->
+    <script>
+        /* --- SISTEMA DE AUDIO SINTETIZADO (Web Audio API) --- */
+        class SoundEffects {
+            constructor() {
+                this.ctx = null;
+            }
+            init() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+            }
+            playKick() {
+                if (!this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(120, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(30, this.ctx.currentTime + 0.15);
+                gain.gain.setValueAtTime(0.8, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.15);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.15);
+            }
+            playWhistle() {
+                if (!this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(2200, this.ctx.currentTime);
+                osc.frequency.setValueAtTime(2400, this.ctx.currentTime + 0.1);
+                gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.5);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.5);
+            }
+            playCheer() {
+                if (!this.ctx) return;
+                // Ruido blanco simulando ovación del público
+                const bufferSize = this.ctx.sampleRate * 1.5;
+                const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                const data = buffer.getChannelData(0);
+                for (let i = 0; i < bufferSize; i++) {
+                    data[i] = Math.random() * 2 - 1;
+                }
+                const noise = this.ctx.createBufferSource();
+                noise.buffer = buffer;
+                const filter = this.ctx.createBiquadFilter();
+                filter.type = 'bandpass';
+                filter.frequency.value = 1000;
+                filter.Q.value = 1.0;
+
+                const gain = this.ctx.createGain();
+                gain.gain.setValueAtTime(0.01, this.ctx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.5, this.ctx.currentTime + 0.3);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 1.5);
+
+                noise.connect(filter);
+                filter.connect(gain);
+                gain.connect(this.ctx.destination);
+                noise.start();
+            }
+        }
+
+        const audio = new SoundEffects();
+
+        /* --- CONFIGURACIÓN Y ESTADO DEL JUEGO --- */
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Estado Global del Partido
+        let gameState = {
+            running: false,
+            paused: false,
+            gameTime: 0, // Minutos simulados (0 a 90)
+            timeSpeedFactor: 2, // Multiplicador de velocidad del reloj
+            scoreHome: 0,
+            scoreAway: 0,
+            period: '1ª Parte',
+            scorers: []
+        };
+
+        // Plantilla de Jugadores Cyber FC
+        let homeSquad = [
+            { id: 1, name: "Guillermo Ochoa", pos: "POR", number: 1, isControlled: false },
+            { id: 2, name: "Rafael Márquez", pos: "DEF", number: 4, isControlled: false },
+            { id: 3, name: "Alexis Sánchez", pos: "MED", number: 10, isControlled: false },
+            { id: 4, name: "Carlos Vela", pos: "DEL", number: 11, isControlled: true }
+        ];
+
+        // Objetos del Juego
+        let fieldWidth = 800;
+        let fieldHeight = 500;
+
+        // Propiedades de la Pelota
+        const ball = {
+            x: 0,
+            y: 0,
+            radius: 7,
+            vx: 0,
+            vy: 0,
+            friction: 0.975,
+            kicked: false
+        };
+
+        // Jugador del Usuario (Local)
+        const player = {
+            x: 0,
+            y: 0,
+            radius: 14,
+            speed: 3.8,
+            vx: 0,
+            vy: 0,
+            color: '#3b82f6',
+            name: "Carlos Vela"
+        };
+
+        // Guardameta Rival (IA Visitante)
+        const keeper = {
+            x: 0,
+            y: 0,
+            radius: 15,
+            speed: 2.2,
+            color: '#ef4444',
+            targetY: 0
+        };
+
+        // Defensor Rival (IA Visitante)
+        const defender = {
+            x: 0,
+            y: 0,
+            radius: 14,
+            speed: 1.8,
+            color: '#dc2626'
+        };
+
+        // Teclas activas
+        const keys = {
+            w: false, a: false, s: false, d: false,
+            ArrowUp: false, ArrowLeft: false, ArrowDown: false, ArrowRight: false,
+            Space: false
+        };
+
+        // Bucle y Reloj
+        let lastTimestamp = 0;
+        let timerInterval = null;
+
+        /* --- INICIALIZACIÓN Y RESPONSIVIDAD --- */
+        function resizeCanvas() {
+            const container = canvas.parentElement;
+            canvas.width = container.clientWidth - 16;
+            canvas.height = Math.max(container.clientHeight - 16, 360);
+            fieldWidth = canvas.width;
+            fieldHeight = canvas.height;
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        function resetPositions() {
+            // Posicionar Pelota en el centro
+            ball.x = fieldWidth / 2;
+            ball.y = fieldHeight / 2;
+            ball.vx = 0;
+            ball.vy = 0;
+
+            // Posicionar Jugador Usuario
+            player.x = fieldWidth * 0.3;
+            player.y = fieldHeight / 2;
+
+            // Posicionar Portero Rival cerca de su portería (derecha)
+            keeper.x = fieldWidth - 25;
+            keeper.y = fieldHeight / 2;
+
+            // Posicionar Defensor Rival
+            defender.x = fieldWidth * 0.75;
+            defender.y = fieldHeight / 2;
+        }
+
+        /* --- DIBUJO DEL CAMPO Y ELEMENTOS --- */
+        function drawField() {
+            // Césped Estilo Estadio Neón/Oscuro
+            ctx.fillStyle = '#064e3b';
+            ctx.fillRect(0, 0, fieldWidth, fieldHeight);
+
+            // Franjas del césped
+            const stripeWidth = fieldWidth / 10;
+            for (let i = 0; i < 10; i += 2) {
+                ctx.fillStyle = 'rgba(4, 120, 87, 0.3)';
+                ctx.fillRect(i * stripeWidth, 0, stripeWidth, fieldHeight);
+            }
+
+            // Líneas de Marcación
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+            ctx.lineWidth = 3;
+
+            // Línea Exterior
+            ctx.strokeRect(15, 15, fieldWidth - 30, fieldHeight - 30);
+
+            // Línea Central y Círculo Medio
+            ctx.beginPath();
+            ctx.moveTo(fieldWidth / 2, 15);
+            ctx.lineTo(fieldWidth / 2, fieldHeight - 15);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.arc(fieldWidth / 2, fieldHeight / 2, 55, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // Punto Central
+            ctx.beginPath();
+            ctx.arc(fieldWidth / 2, fieldHeight / 2, 4, 0, Math.PI * 2);
+            ctx.fillStyle = 'white';
+            ctx.fill();
+
+            // Áreas de Portería (Izquierda y Derecha)
+            const goalHeight = 130;
+            const goalTop = (fieldHeight - goalHeight) / 2;
+
+            // Área Grande Izquierda
+            ctx.strokeRect(15, goalTop - 30, 90, goalHeight + 60);
+            // Área Grande Derecha
+            ctx.strokeRect(fieldWidth - 105, goalTop - 30, 90, goalHeight + 60);
+
+            // Redes/Porterías
+            // Portería Izquierda (Propia)
+            ctx.fillStyle = 'rgba(59, 130, 246, 0.2)';
+            ctx.fillRect(0, goalTop, 15, goalHeight);
+            ctx.strokeStyle = '#3b82f6';
+            ctx.strokeRect(0, goalTop, 15, goalHeight);
+
+            // Portería Derecha (Rival)
+            ctx.fillStyle = 'rgba(239, 68, 68, 0.2)';
+            ctx.fillRect(fieldWidth - 15, goalTop, 15, goalHeight);
+            ctx.strokeStyle = '#ef4444';
+            ctx.strokeRect(fieldWidth - 15, goalTop, 15, goalHeight);
+        }
+
+        function drawEntities() {
+            // Dibujar Jugador (Usuario)
+            ctx.save();
+            ctx.shadowBlur = 12;
+            ctx.shadowColor = player.color;
+            ctx.beginPath();
+            ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
+            ctx.fillStyle = player.color;
+            ctx.fill();
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            ctx.restore();
+
+            // Nombre sobre el jugador
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 11px Outfit';
+            ctx.textAlign = 'center';
+            ctx.fillText(player.name, player.x, player.y - player.radius - 5);
+
+            // Dibujar Defensor Rival
+            ctx.save();
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = defender.color;
+            ctx.beginPath();
+            ctx.arc(defender.x, defender.y, defender.radius, 0, Math.PI * 2);
+            ctx.fillStyle = defender.color;
+            ctx.fill();
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            ctx.restore();
+
+            // Dibujar Portero Rival
+            ctx.save();
+            ctx.shadowBlur = 10;
+            ctx.shadowColor = keeper.color;
+            ctx.beginPath();
+            ctx.arc(keeper.x, keeper.y, keeper.radius, 0, Math.PI * 2);
+            ctx.fillStyle = '#f59e0b'; // Amarillo/Naranja para el portero
+            ctx.fill();
+            ctx.strokeStyle = keeper.color;
+            ctx.lineWidth = 3;
+            ctx.stroke();
+            ctx.restore();
+
+            // Dibujar Pelota con sombra 3D
+            ctx.save();
+            // Sombra de la pelota
+            ctx.beginPath();
+            ctx.arc(ball.x + 3, ball.y + 3, ball.radius, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+            ctx.fill();
+
+            // Cuerpo del balón
+            ctx.beginPath();
+            ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+            ctx.fillStyle = '#ffffff';
+            ctx.fill();
+            ctx.strokeStyle = '#0f172a';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+
+            // Detalle en el balón
+            ctx.beginPath();
+            ctx.arc(ball.x - 2, ball.y - 2, 2, 0, Math.PI * 2);
+            ctx.fillStyle = '#0f172a';
+            ctx.fill();
+            ctx.restore();
+        }
+
+        /* --- LÓGICA DE FÍSICA E INTELIGENCIA ARTIFICIAL --- */
+        function updatePhysics() {
+            if (!gameState.running || gameState.paused) return;
+
+            // 1. Movimiento del Jugador del Usuario
+            let dx = 0;
+            let dy = 0;
+            if (keys.w || keys.ArrowUp) dy -= 1;
+            if (keys.s || keys.ArrowDown) dy += 1;
+            if (keys.a || keys.ArrowLeft) dx -= 1;
+            if (keys.d || keys.ArrowRight) dx += 1;
+
+            // Normalizar movimiento diagonal
+            if (dx !== 0 && dy !== 0) {
+                dx *= 0.7071;
+                dy *= 0.7071;
+            }
+
+            player.x += dx * player.speed;
+            player.y += dy * player.speed;
+
+            // Límites del campo para el jugador
+            player.x = Math.max(15 + player.radius, Math.min(fieldWidth - 15 - player.radius, player.x));
+            player.y = Math.max(15 + player.radius, Math.min(fieldHeight - 15 - player.radius, player.y));
+
+            // 2. IA del Defensor Rival (Sigue a la pelota moderadamente)
+            const defTargetX = Math.max(fieldWidth * 0.5, ball.x + 30);
+            const defTargetY = ball.y;
+            defender.x += (defTargetX - defender.x) * 0.035;
+            defender.y += (defTargetY - defender.y) * 0.035;
+
+            // 3. IA del Guardameta (Cubre la portería según la posición del balón)
+            const goalTop = (fieldHeight - 130) / 2;
+            const goalBottom = goalTop + 130;
+            const targetKeeperY = Math.max(goalTop + keeper.radius, Math.min(goalBottom - keeper.radius, ball.y));
+            keeper.y += (targetKeeperY - keeper.y) * 0.08;
+
+            // 4. Física del Balón
+            ball.x += ball.vx;
+            ball.y += ball.vy;
+
+            // Fricción/Desaceleración del balón
+            ball.vx *= ball.friction;
+            ball.vy *= ball.friction;
+
+            // Colisión de Pelota con Bordes Superior e Inferior
+            if (ball.y - ball.radius <= 15) {
+                ball.y = 15 + ball.radius;
+                ball.vy *= -0.7;
+            } else if (ball.y + ball.radius >= fieldHeight - 15) {
+                ball.y = fieldHeight - 15 - ball.radius;
+                ball.vy *= -0.7;
+            }
+
+            // Colisión de Pelota con Bordes de Fondo (Fuera o Gol)
+            if (ball.x - ball.radius <= 15) {
+                // Lado Izquierdo
+                if (ball.y >= goalTop && ball.y <= goalBottom) {
+                    // Gol del Rival
+                    scoreGoal('away');
+                } else {
+                    // Fuera
+                    ball.x = 15 + ball.radius;
+                    ball.vx *= -0.6;
+                    showEventBanner("TIRO FUERA", "Cerca del palo izquierdo", "border-slate-500/50 bg-slate-900/90 text-slate-300");
+                }
+            } else if (ball.x + ball.radius >= fieldWidth - 15) {
+                // Lado Derecho (Portería Rival)
+                if (ball.y >= goalTop && ball.y <= goalBottom) {
+                    // ¡GOL DE USUARIO!
+                    scoreGoal('home');
+                } else {
+                    // Fuera
+                    ball.x = fieldWidth - 15 - ball.radius;
+                    ball.vx *= -0.6;
+                    showEventBanner("¡FUERA!", "El tiro se va desviado", "border-amber-500/50 bg-amber-950/90 text-amber-300");
+                }
+            }
+
+            // Colisión Jugador - Pelota (Conducción / Empuje)
+            checkPlayerBallCollision(player);
+            checkPlayerBallCollision(defender);
+
+            // Colisión Portero - Pelota (Parada)
+            const distKeeper = Math.hypot(ball.x - keeper.x, ball.y - keeper.y);
+            if (distKeeper < keeper.radius + ball.radius) {
+                ball.vx = -Math.abs(ball.vx) * 0.8 - 4;
+                ball.vy = (ball.y - keeper.y) * 0.3;
+                audio.playKick();
+                showEventBanner("¡PARADÓN!", "El portero detiene el remate", "border-blue-500/50 bg-blue-950/90 text-blue-300");
+            }
+
+            // Acción de Patear (Tecla Espacio)
+            if (keys.Space) {
+                const distPlayer = Math.hypot(ball.x - player.x, ball.y - player.y);
+                if (distPlayer < player.radius + ball.radius + 12) {
+                    // Dirección del tiro hacia la portería rival (Derecha)
+                    const targetX = fieldWidth - 10;
+                    const targetY = goalTop + 65; // Centro de la red
+                    const angle = Math.atan2(targetY - ball.y, targetX - ball.x);
+                    
+                    const power = 13 + Math.random() * 3;
+                    ball.vx = Math.cos(angle) * power;
+                    ball.vy = Math.sin(angle) * power + (Math.random() - 0.5) * 2; // Ligero efecto aleatorio
+                    
+                    audio.playKick();
+                    keys.Space = false; // Evitar tiros consecutivos ultra rápidos
+                }
+            }
+        }
+
+        function checkPlayerBallCollision(p) {
+            const dist = Math.hypot(ball.x - p.x, ball.y - p.y);
+            const minDist = p.radius + ball.radius;
+            if (dist < minDist) {
+                const angle = Math.atan2(ball.y - p.y, ball.x - p.x);
+                const overlap = minDist - dist;
+                ball.x += Math.cos(angle) * overlap;
+                ball.y += Math.sin(angle) * overlap;
+
+                // Transferir impulso de movimiento
+                ball.vx = Math.cos(angle) * 3.5;
+                ball.vy = Math.sin(angle) * 3.5;
+            }
+        }
+
+        /* --- BANDERAS Y NOTIFICACIONES DE EVENTO --- */
+        let bannerTimeout = null;
+        function showEventBanner(title, subtitle, styleClasses) {
+            const banner = document.getElementById('event-banner');
+            const box = document.getElementById('banner-box');
+            const titleEl = document.getElementById('banner-title');
+            const subEl = document.getElementById('banner-subtitle');
+
+            titleEl.textContent = title;
+            subEl.textContent = subtitle;
+            box.className = `px-8 py-4 rounded-2xl border-2 shadow-2xl backdrop-blur-md animate-banner ${styleClasses}`;
+
+            banner.classList.remove('hidden');
+
+            clearTimeout(bannerTimeout);
+            bannerTimeout = setTimeout(() => {
+                banner.classList.add('hidden');
+            }, 1800);
+        }
+
+        /* --- CONTROL DE CRONÓMETRO Y GOLES --- */
+        function scoreGoal(team) {
+            audio.playWhistle();
+            audio.playCheer();
+
+            if (team === 'home') {
+                gameState.scoreHome++;
+                document.getElementById('score-home').textContent = gameState.scoreHome;
+                showEventBanner("¡GOOOOL!", `Anotación de ${player.name}`, "border-emerald-500 bg-emerald-950/90 text-emerald-300 neon-text-gold");
+                
+                // Registrar Goleador
+                gameState.scorers.push({ name: player.name, min: Math.floor(gameState.gameTime) });
+                updateScorersUI();
+            } else {
+                gameState.scoreAway++;
+                document.getElementById('score-away').textContent = gameState.scoreAway;
+                showEventBanner("GOL RIVAL", "Neon Stars ha marcado gol", "border-red-500 bg-red-950/90 text-red-300");
+            }
+
+            resetPositions();
+        }
+
+        function updateScorersUI() {
+            const container = document.getElementById('scorers-list');
+            if (gameState.scorers.length === 0) {
+                container.innerHTML = `<p class="text-slate-500 italic">No hay goles anotados aún.</p>`;
+                return;
+            }
+            container.innerHTML = gameState.scorers.map(s => `
+                <div class="flex items-center justify-between bg-slate-900 px-2 py-1 rounded border border-slate-800">
+                    <span class="font-semibold text-slate-200">${s.name}</span>
+                    <span class="text-amber-400 font-mono">${s.min}'</span>
+                </div>
+            `).join('');
+        }
+
+        function updateClock() {
+            if (!gameState.running || gameState.paused) return;
+
+            // Incrementar tiempo
+            gameState.gameTime += 0.5 * gameState.timeSpeedFactor;
+
+            if (gameState.gameTime >= 45 && gameState.period === '1ª Parte') {
+                gameState.period = '2ª Parte';
+                document.getElementById('match-period').textContent = gameState.period;
+                audio.playWhistle();
+                showEventBanner("FINAL 1ª PARTE", "Descanso de 15 minutos", "border-amber-500 bg-slate-900/90 text-amber-400");
+            }
+
+            if (gameState.gameTime >= 90) {
+                gameState.gameTime = 90;
+                endGame();
+            }
+
+            // Actualizar interfaz
+            const mins = Math.floor(gameState.gameTime).toString().padStart(2, '0');
+            document.getElementById('match-timer').textContent = `${mins}:00`;
+        }
+
+        function changeTimeSpeed(val) {
+            gameState.timeSpeedFactor = parseFloat(val);
+        }
+
+        /* --- CICLO DE VIDA DEL JUEGO --- */
+        function gameLoop(timestamp) {
+            ctx.clearRect(0, 0, fieldWidth, fieldHeight);
+
+            drawField();
+            updatePhysics();
+            drawEntities();
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        function startGame() {
+            audio.init();
+            audio.playWhistle();
+
+            document.getElementById('overlay-screen').classList.add('hidden');
+            document.getElementById('pause-btn').disabled = false;
+
+            gameState.running = true;
+            gameState.paused = false;
+
+            if (!timerInterval) {
+                timerInterval = setInterval(updateClock, 1000);
+            }
+
+            resetPositions();
+        }
+
+        function togglePause() {
+            if (!gameState.running) return;
+
+            gameState.paused = !gameState.paused;
+            const pauseBtn = document.getElementById('pause-btn');
+            const overlay = document.getElementById('overlay-screen');
+
+            if (gameState.paused) {
+                pauseBtn.innerHTML = `<i class="fa-solid fa-play"></i> Reanudar`;
+                document.getElementById('overlay-title').textContent = "Juego En Pausa";
+                document.getElementById('overlay-desc').textContent = "El cronómetro y los jugadores están detenidos.";
+                document.getElementById('start-btn').innerHTML = `<i class="fa-solid fa-play"></i> Continuar`;
+                overlay.classList.remove('hidden');
+            } else {
+                pauseBtn.innerHTML = `<i class="fa-solid fa-pause"></i> Pausar`;
+                overlay.classList.add('hidden');
+            }
+        }
+
+        function resetMatch() {
+            gameState.running = false;
+            gameState.paused = false;
+            gameState.gameTime = 0;
+            gameState.scoreHome = 0;
+            gameState.scoreAway = 0;
+            gameState.period = '1ª Parte';
+            gameState.scorers = [];
+
+            document.getElementById('score-home').textContent = '0';
+            document.getElementById('score-away').textContent = '0';
+            document.getElementById('match-timer').textContent = '00:00';
+            document.getElementById('match-period').textContent = '1ª Parte';
+            document.getElementById('pause-btn').disabled = true;
+
+            updateScorersUI();
+            resetPositions();
+
+            document.getElementById('overlay-title').textContent = "¡Bienvenido a CyberFut 2D!";
+            document.getElementById('overlay-desc').textContent = "Usa las teclas WASD o Flechas para moverte y Espacio para patear.";
+            document.getElementById('start-btn').innerHTML = `<i class="fa-solid fa-kickstarter-k"></i> Iniciar Partido`;
+            document.getElementById('overlay-screen').classList.remove('hidden');
+
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+        }
+
+        function endGame() {
+            gameState.running = false;
+            if (timerInterval) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+
+            audio.playWhistle();
+
+            let title = "¡FINAL DEL PARTIDO!";
+            let desc = `Resultado final: Cyber FC ${gameState.scoreHome} - ${gameState.scoreAway} Neon Stars.`;
+
+            if (gameState.scoreHome > gameState.scoreAway) {
+                desc += " ¡Victoria épica de Cyber FC!";
+            } else if (gameState.scoreHome < gameState.scoreAway) {
+                desc += " DERROTA. La IA ha conseguido ganar esta vez.";
+            } else {
+                desc += " ¡Empate técnico vibrante!";
+            }
+
+            document.getElementById('overlay-title').textContent = title;
+            document.getElementById('overlay-desc').textContent = desc;
+            document.getElementById('start-btn').innerHTML = `<i class="fa-solid fa-rotate-left"></i> Jugar Otro Partido`;
+            document.getElementById('overlay-screen').classList.remove('hidden');
+        }
+
+        /* --- GESTIÓN DE LA PLANTILLA Y ALINEACIÓN --- */
+        function renderSquadUI() {
+            const list = document.getElementById('squad-list');
+            list.innerHTML = homeSquad.map(p => `
+                <li class="flex items-center justify-between bg-slate-900/80 p-2 rounded-xl border border-slate-800/80">
+                    <div class="flex items-center gap-2.5">
+                        <span class="w-6 h-6 rounded-lg bg-blue-600/30 text-blue-400 border border-blue-500/30 flex items-center justify-center text-xs font-bold">${p.number}</span>
+                        <div>
+                            <p class="font-bold text-slate-200 text-xs">${p.name}</p>
+                            <span class="text-[10px] text-slate-400 font-medium">${p.pos}</span>
+                        </div>
+                    </div>
+                    ${p.isControlled ? `<span class="text-[10px] bg-amber-500/20 text-amber-300 font-bold px-2 py-0.5 rounded-full border border-amber-500/30">ACTIVO</span>` : ''}
+                </li>
+            `).join('');
+        }
+
+        function toggleLineupModal() {
+            const modal = document.getElementById('lineup-modal');
+            modal.classList.toggle('hidden');
+        }
+
+        function saveLineup() {
+            const striker = document.getElementById('input-striker').value.trim() || "Carlos Vela";
+            const midfielder = document.getElementById('input-midfielder').value.trim() || "Alexis Sánchez";
+            const defenderName = document.getElementById('input-defender').value.trim() || "Rafael Márquez";
+            const keeperName = document.getElementById('input-keeper').value.trim() || "Guillermo Ochoa";
+
+            homeSquad[0].name = keeperName;
+            homeSquad[1].name = defenderName;
+            homeSquad[2].name = midfielder;
+            homeSquad[3].name = striker;
+
+            player.name = striker;
+
+            renderSquadUI();
+            toggleLineupModal();
+        }
+
+        /* --- CONTROLES Y EVENTOS DE TECLADO / TÁCTIL --- */
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') keys.Space = true;
+            if (keys.hasOwnProperty(e.key)) keys[e.key] = true;
+            if (keys.hasOwnProperty(e.code)) keys[e.code] = true;
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (e.code === 'Space') keys.Space = false;
+            if (keys.hasOwnProperty(e.key)) keys[e.key] = false;
+            if (keys.hasOwnProperty(e.code)) keys[e.code] = false;
+        });
+
+        // Eventos Táctiles para Módulos Móviles
+        function setupTouchControl(btnId, keyName) {
+            const btn = document.getElementById(btnId);
+            if (!btn) return;
+
+            btn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                keys[keyName] = true;
+            });
+            btn.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                keys[keyName] = false;
+            });
+        }
+
+        setupTouchControl('btn-up', 'w');
+        setupTouchControl('btn-down', 's');
+        setupTouchControl('btn-left', 'a');
+        setupTouchControl('btn-right', 'd');
+
+        const btnShoot = document.getElementById('btn-shoot');
+        if (btnShoot) {
+            btnShoot.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                keys.Space = true;
+            });
+            btnShoot.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                keys.Space = false;
+            });
+        }
+
+        // Inicializar interfaz y comenzar bucle principal
+        renderSquadUI();
+        requestAnimationFrame(gameLoop);
+
+    </script>
+</body>
+</html>
+```
